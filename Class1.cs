@@ -41,7 +41,9 @@ namespace Joeys_menu
         public ConfigEntry<bool> grabRigEnabled;
         public ConfigEntry<bool> tracersEnabled;
         public ConfigEntry<bool> boxESPEnabled;
-
+        public ConfigEntry<bool> gunEnabled;
+        public ConfigEntry<bool> joyStickFlyEnabled;
+        public ConfigEntry<bool> ironMonkeyEnabled;
         public static Class1 instance;
         void Awake()
 
@@ -51,17 +53,19 @@ namespace Joeys_menu
             List<List<string>> movementPages = new List<List<string>>
             {
                 new List<string> {"Fly", "Speed Boost", "Ghost Monkey", "NoClip(LG)", "Car Monkey", "Platforms"},
-                 new List<string> {"Grab Rig"}
+                 new List<string> {"Grab Rig", "RidePlayerGun", "JoyStickFly", "IronMonkey" }
             };
 
             List<List<string>> extraPages = new List<List<string>>
             {
-                new List<string> { "Disconnect", "Tracers", "Box ESP"},
+                new List<string> { "Tracers", "Box ESP"},   
+
             };
+            
+
 
             allCategories.Add(movementPages);
             allCategories.Add(extraPages);
-
             instance = this;
             Harmony harmony = new Harmony("Joey.menu");
             harmony.PatchAll();
@@ -76,11 +80,25 @@ namespace Joeys_menu
             grabRigEnabled = Config.Bind("Settings", "Grab Rig Enabled", false, "Toggle Grab Rig");
             tracersEnabled = Config.Bind("Settings", "Tracers Enabled", false, "Toggle Tracers");
             boxESPEnabled = Config.Bind("Settings", "BoxEsp Enabled", false, "Toggle Boxesp");
+            gunEnabled = Config.Bind("Settings", "RidePlaye Gun Enabled", false, "Toggle gun");
+            joyStickFlyEnabled = Config.Bind("Settings", "JoyStickFly Enabled", false, "Toggle JoyStickFly");
+            ironMonkeyEnabled = Config.Bind("Settings", "IronMonkey Enabled", false, "Toggle IronMonkey");
 
 
-            Debug.Log("Your mod has successfully loaded");
+
         }
+        public static bool ZG;
+        void FixedUpdate()
+        {
 
+            if (ZG)
+            {
+                GorillaTagger.Instance.rigidbody.AddForce(-Physics.gravity, ForceMode.Acceleration);
+                GorillaTagger.Instance.rigidbody.velocity = Vector3.zero;
+            }
+            ZG = false;
+        }
+   
         void Start()
         {
             IsMenuCreated = false;
@@ -88,6 +106,9 @@ namespace Joeys_menu
 
         void Update()
         {
+
+
+
             menuimput = ControllerInputPoller.instance.leftControllerSecondaryButton;
 
             if (pageSwitchCoolDown > 0f)
@@ -112,10 +133,16 @@ namespace Joeys_menu
             if (grabRigEnabled.Value) Mods.GrabRig();
             if (tracersEnabled.Value) Mods.Tracers();
             if (boxESPEnabled.Value) Mods.BoxESP();
+            if (gunEnabled.Value) Mods.RidePlayerGun();
+            if (joyStickFlyEnabled.Value) Mods.Joystickfly();
+            if (ironMonkeyEnabled.Value) Mods.IronMonkey();
+
         }
 
         void CreateMenu()
         {
+
+            AddDisconnect(0f, "Disconnect", 0.3f, 0f);
             GorillaLocomotion.GTPlayer player = GorillaLocomotion.GTPlayer.Instance;
 
             IsMenuCreated = true;
@@ -146,8 +173,8 @@ namespace Joeys_menu
             text.transform.localScale = new Vector3(0.1f, 0.05f, 0.1f);
 
             //left is x aka depth
-            // middle is y left and right
-            //right is z aka up and down
+            // middle is y up and down
+            //right is z aka left and right
 
 
             GameObject.Destroy(menuObj.GetComponent<Collider>());
@@ -176,9 +203,10 @@ namespace Joeys_menu
             Addbutton(-0.15f, "<<", 0.1f, 0.06f);
             Addbutton(-0.15f, ">>", 0.1f, -0.06f);
             Addbutton(-0.1f, "Back", 0.1f, 0.135f);
+            
 
         }
-
+        
         void DestroyMenu()
         {
             Config.Save();
@@ -195,6 +223,56 @@ namespace Joeys_menu
             btnObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
             var follow = btnObj.AddComponent<Followmenu>();
             follow.position = new Vector3(0.035f, yoffset, zoffset);
+            follow.rotation = Quaternion.identity;
+            follow.target = player.leftControllerTransform;
+
+
+            btnObj.layer = 18;
+
+            //Left is x
+            //Middle is y
+            //Right is z
+
+            btnObj.transform.localScale = new Vector3(0.03f, soffset, 0.04f);
+
+
+
+            Renderer renderer = btnObj.GetComponent<Renderer>();
+            renderer.material.shader = Shader.Find("GorillaTag/UberShader");
+            renderer.material.color = new Color(0.7f, 0.85f, 0.95f);
+            var trigger = btnObj.AddComponent<ButtanActivation>();
+
+            trigger.btnIdentifier = btnName;
+
+
+
+            btnsObjs.Add(btnObj);
+
+            var textObject = new GameObject("ButtonLabel");
+            textObject.transform.SetParent(btnObj.transform);
+            textObject.transform.localPosition = new Vector3(0.55f, 0f, 0f);
+            textObject.transform.localRotation = Quaternion.Euler(0f, -90f, -90f);
+
+            var text = textObject.AddComponent<TextMeshPro>();
+            text.text = btnName;
+            text.fontSize = 30;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = Color.black;
+            text.enableAutoSizing = true;
+            text.rectTransform.sizeDelta = new Vector2(50f, 40f);
+            text.transform.localScale = new Vector3(0.01f, 0.1f, 0.3f);
+
+
+
+        }
+
+        void AddDisconnect(float zoffset, string btnName, float soffset, float yoffset)
+        {
+            var player = GorillaLocomotion.GTPlayer.Instance;
+            GameObject btnObj;
+            btnObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var follow = btnObj.AddComponent<Followmenu>();
+            follow.position = new Vector3(0.035f, yoffset, 0.25f);
             follow.rotation = Quaternion.identity;
             follow.target = player.leftControllerTransform;
 
@@ -269,48 +347,82 @@ namespace Joeys_menu
         {
             public string btnIdentifier;
             bool IsToggled;
+            bool IsToggleAble;
 
             void Start()
             {
                 switch (btnIdentifier)
                 {
                     case "Speed Boost":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.speedBoostEnabled.Value;
                         break;
 
                     case "Fly":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.flyEnabled.Value;
                         break;
 
                     case "Ghost Monkey":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.ghostMonkeyEnabled.Value;
                         break;
 
                     case "NoClip(LG)":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.noClipEnabled.Value;
                         break;
 
                     case "Car Monkey":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.carMonkeyEnabled.Value;
                         break;
 
                     case "Platforms":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.platformsEnabled.Value;
                         break;
 
                     case "Grab Rig":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.grabRigEnabled.Value;
                         break;
 
                     case "Tracers":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.tracersEnabled.Value;
                         break;
 
                     case "Box ESP":
+                        IsToggleAble = true;
                         IsToggled = Class1.instance.boxESPEnabled.Value;
                         break;
+
+                    case "RidePlayerGun":
+                        IsToggleAble = true;
+                        IsToggled = Class1.instance.gunEnabled.Value;
+                        break;
+
+                    case "JoyStickFly":
+                        IsToggleAble = true;
+                        IsToggled = Class1.instance.joyStickFlyEnabled.Value;
+                        break;
+
+                    case "IronMonkey":
+                        IsToggleAble = true;
+                        IsToggled = Class1.instance.ironMonkeyEnabled.Value;
+                        break;
+
+                    case "Disconnect":
+                        IsToggleAble = false;
+                        IsToggled = Class1.instance.disconnectEnabled.Value;
+                        break;
+
                 }
-                GetComponent<Renderer>().material.color = IsToggled ? Color.green : new Color(163/255f, 193/255f, 232/255f);;
+                if (IsToggleAble)
+                {
+                    GetComponent<Renderer>().material.color = IsToggled ? Color.green : new Color(0.7f, 0.85f, 0.95f);
+                }
             }
             public override void ButtonActivationWithHand(bool isLeftHand)
             {
@@ -318,8 +430,12 @@ namespace Joeys_menu
 
                 if (!isLeftHand)
                 {
-                    IsToggled = !IsToggled;
-                    GetComponent<Renderer>().material.color = IsToggled ? Color.green : new Color(163 / 255f, 193 / 255f, 232 / 255f); ;
+
+                    if (IsToggleAble)
+                    {
+                        IsToggled = !IsToggled;
+                        GetComponent<Renderer>().material.color = IsToggled ? Color.green : new Color(0.7f, 0.85f, 0.95f);
+                    }
                     switch (btnIdentifier)
                     {
                         case "Speed Boost":
@@ -360,6 +476,23 @@ namespace Joeys_menu
                             IsToggled = Class1.instance.boxESPEnabled.Value = IsToggled;
                             break;
 
+                        case "RidePlayerGun":
+                            IsToggled = Class1.instance.gunEnabled.Value = IsToggled;
+                            break;
+
+                        case "JoyStickFly":
+                            IsToggled = Class1.instance.joyStickFlyEnabled.Value = IsToggled;
+                            break;
+
+                        case "IronMonkey":
+                            IsToggled = Class1.instance.ironMonkeyEnabled.Value = IsToggled;
+                            break;
+
+                        case "Disconnect":
+                            Mods.Disconnect();
+                            break;
+
+
                         case "<<":
                             if (Class1.instance.pageSwitchCoolDown <= 0)
                             {
@@ -397,6 +530,7 @@ namespace Joeys_menu
                             Class1.instance.CreateMenu();
                             break;
                     }
+                    if (IsToggleAble)
                     Class1.instance.Config.Save();
 
                 }
@@ -415,6 +549,9 @@ namespace Joeys_menu
                 transform.rotation = target.rotation * rotation;
             }
         }
+
+
+
 
 
     }
