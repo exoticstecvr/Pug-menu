@@ -69,21 +69,24 @@ namespace Joeys_menu
         }
         public static void NoClip()
         {
-            if (ControllerInputPoller.instance.rightControllerGripFloat > 0.1f) ;
-            bool disableColliders = ControllerInputPoller.instance.rightControllerIndexFloat > 0.1f;
-            MeshCollider[] colliders = Resources.FindObjectsOfTypeAll<MeshCollider>();
-
-            foreach (MeshCollider collider in colliders)
+            if (ControllerInputPoller.instance.rightControllerIndexFloat > 0.1f)
             {
-                collider.enabled = !disableColliders;
+                MeshCollider[] array = Resources.FindObjectsOfTypeAll<MeshCollider>();
+                foreach (MeshCollider meshCollider in array)
+                {
+                    meshCollider.enabled = false;
+                }
             }
-
-            if (ControllerInputPoller.instance.rightControllerSecondaryButton)
+            else
             {
-                GorillaLocomotion.GTPlayer.Instance.transform.position += (GorillaLocomotion.GTPlayer.Instance.headCollider.transform.forward * Time.deltaTime * 15);
-                GorillaLocomotion.GTPlayer.Instance.GetComponent<Rigidbody>().velocity = Vector3.zero;
+                MeshCollider[] array = Resources.FindObjectsOfTypeAll<MeshCollider>();
+                foreach (MeshCollider meshCollider in array)
+                {
+                    meshCollider.enabled = true;
+                }
             }
         }
+    
 
 
         private static Vector3 currentVelocity = Vector3.zero;
@@ -105,24 +108,24 @@ namespace Joeys_menu
 
             if (ControllerInputPoller.instance.leftControllerPrimaryButton)
             {
-                inputDirection -= forward * 0.1f; // slower backwards
+                inputDirection -= forward * 0.1f; 
             }
 
             inputDirection = inputDirection.normalized;
 
-            // Calculate target velocity on horizontal plane only
+            
             Vector3 targetVelocity = inputDirection * maxSpeed;
 
-            // Smooth acceleration toward target velocity
+            
             currentVelocity = Vector3.MoveTowards(currentVelocity, targetVelocity, acceleration * Time.deltaTime);
 
-            // Calculate next position using current velocity and deltaTime
+            
             Vector3 nextPosition = rb.position + currentVelocity * Time.deltaTime;
 
-            // Keep original vertical position (y) to avoid interference with gravity/jumping
+            
             nextPosition.y = rb.position.y;
 
-            // Move the Rigidbody using MovePosition for proper collision handling
+            
             rb.MovePosition(nextPosition);
         }
 
@@ -231,12 +234,12 @@ namespace Joeys_menu
                     GameObject line = new GameObject("line");
                     LineRenderer lr = line.AddComponent<LineRenderer>();
 
-                    // Create a new material with shader like BoxESP uses
+
                     Material mat = new Material(Shader.Find("GUI/Text Shader"));
                     Color color = Color.blue;
-                    mat.color = new Color(color.r, color.g, color.b, 0.6f); // Slight transparency like in BoxESP
+                    mat.color = new Color(color.r, color.g, color.b, 0.6f); 
 
-                    lr.material = mat; // Assign material to LineRenderer
+                    lr.material = mat; 
 
                     lr.startWidth = 0.01f;
                     lr.endWidth = 0.01f;
@@ -245,12 +248,13 @@ namespace Joeys_menu
                     lr.SetPosition(0, GTPlayer.Instance.rightControllerTransform.position);
                     lr.SetPosition(1, vrrigs.transform.position);
 
-                    // Destroy the line object and material after a frame to avoid leaks
+                    
                     GameObject.Destroy(line, Time.deltaTime);
                     GameObject.Destroy(mat, Time.deltaTime);
                 }
             }
         }
+
 
         public static void BoxESP()
         {
@@ -463,12 +467,93 @@ namespace Joeys_menu
 
         public static void Disconnect()
         {
-            Debug.Log("disconnect");
             PhotonNetwork.Disconnect();
         }
+        public static void FixRigHandRotation()
+        {
+            VRRig.LocalRig.leftHand.rigTarget.transform.rotation *= Quaternion.Euler(VRRig.LocalRig.leftHand.trackingRotationOffset);
+            VRRig.LocalRig.rightHand.rigTarget.transform.rotation *= Quaternion.Euler(VRRig.LocalRig.rightHand.trackingRotationOffset);
+        }
+        public static void DoADance()
+        {
+            if (ControllerInputPoller.instance.rightGrab)
+            {
+                VRRig.LocalRig.enabled = false;
 
+                Vector3 bodyOffset = (GorillaTagger.Instance.bodyCollider.transform.right * (Mathf.Cos((float)Time.frameCount / 20f) * 0.3f)) + (new Vector3(0f, Mathf.Abs(Mathf.Sin((float)Time.frameCount / 20f) * 0.2f), 0f));
+                VRRig.LocalRig.transform.position = GorillaTagger.Instance.bodyCollider.transform.position + new Vector3(0f, 0.15f, 0f) + bodyOffset;
+                VRRig.LocalRig.transform.rotation = GorillaTagger.Instance.bodyCollider.transform.rotation;
 
+                VRRig.LocalRig.head.rigTarget.transform.rotation = GorillaTagger.Instance.bodyCollider.transform.rotation;
 
+                VRRig.LocalRig.leftHand.rigTarget.transform.position = VRRig.LocalRig.transform.position + VRRig.LocalRig.transform.forward * 0.2f + VRRig.LocalRig.transform.right * -0.4f + VRRig.LocalRig.transform.up * (0.3f + (Mathf.Sin((float)Time.frameCount / 20f) * 0.2f));
+                VRRig.LocalRig.rightHand.rigTarget.transform.position = VRRig.LocalRig.transform.position + VRRig.LocalRig.transform.forward * 0.2f + VRRig.LocalRig.transform.right * 0.4f + VRRig.LocalRig.transform.up * (0.3f + (Mathf.Sin((float)Time.frameCount / 20f) * -0.2f));
 
+                VRRig.LocalRig.leftHand.rigTarget.transform.rotation = VRRig.LocalRig.transform.rotation;
+                VRRig.LocalRig.rightHand.rigTarget.transform.rotation = VRRig.LocalRig.transform.rotation;
+
+                FixRigHandRotation();
+            }
+            else
+                VRRig.LocalRig.enabled = true;
+        }
+
+        public static Vector3 lastPosition = Vector3.zero;
+
+        public static void TeleportPlayer(Vector3 position) // Teleports the player to a given position
+        {
+            GTPlayer.Instance.TeleportTo(position, GTPlayer.Instance.transform.rotation);
+            Mods.lastPosition = position;
+        }
+
+        // Stores recorded positions and related data
+        private static List<object[]> playerPositions = new List<object[]>();
+
+        public static void Rewind()
+        {
+            // If holding right grip, go backwards in stored positions
+            if (ControllerInputPoller.instance.rightControllerGripFloat > 0.1f)
+            {
+                if (playerPositions.Count > 0)
+                {
+                    object[] targetPos = playerPositions[^1];
+
+                    // Teleport to the saved root player position
+                    TeleportPlayer((Vector3)targetPos[0]);
+
+                    // Restore both hand positions and rotations
+                    GorillaTagger.Instance.leftHandTransform.position = (Vector3)targetPos[1];
+                    GorillaTagger.Instance.leftHandTransform.rotation = (Quaternion)targetPos[2];
+
+                    GorillaTagger.Instance.rightHandTransform.position = (Vector3)targetPos[3];
+                    GorillaTagger.Instance.rightHandTransform.rotation = (Quaternion)targetPos[4];
+
+                    // Restore velocity (reversed for rewind effect)
+                    GorillaTagger.Instance.rigidbody.velocity = (Vector3)targetPos[5] * -1f;
+
+                    // Remove the used frame
+                    playerPositions.RemoveAt(playerPositions.Count - 1);
+                }
+            }
+            else
+            {
+                // Save the current state — using player root transform position instead of body collider
+                playerPositions.Add(new object[] {
+            GTPlayer.Instance.transform.position, // FIXED: matches TeleportTo
+
+            GorillaTagger.Instance.leftHandTransform.position,
+            GorillaTagger.Instance.leftHandTransform.rotation,
+
+            GorillaTagger.Instance.rightHandTransform.position,
+            GorillaTagger.Instance.rightHandTransform.rotation,
+
+            GorillaTagger.Instance.rigidbody.velocity
+        });
+
+                // Limit history to avoid memory bloat
+                if (playerPositions.Count > 8640)
+                    playerPositions.RemoveAt(0);
+            }
+        }
     }
 }
