@@ -44,6 +44,8 @@ namespace Joeys_menu
         public ConfigEntry<bool> gunEnabled;
         public ConfigEntry<bool> joyStickFlyEnabled;
         public ConfigEntry<bool> ironMonkeyEnabled;
+        public ConfigEntry<bool> doadanceEnabled;
+        public ConfigEntry<bool> rewindenabled;
         public static Class1 instance;
         void Awake()
 
@@ -53,7 +55,7 @@ namespace Joeys_menu
             List<List<string>> movementPages = new List<List<string>>
             {
                 new List<string> {"Fly", "Speed Boost", "Ghost Monkey", "NoClip(LG)", "Car Monkey", "Platforms"},
-                 new List<string> {"Grab Rig", "RidePlayerGun", "JoyStickFly", "IronMonkey" }
+                 new List<string> {"Grab Rig", "RidePlayerGun", "JoyStickFly", "IronMonkey", "Do-A-Dance", "Rewind" }
             };
 
             List<List<string>> extraPages = new List<List<string>>
@@ -83,7 +85,8 @@ namespace Joeys_menu
             gunEnabled = Config.Bind("Settings", "RidePlaye Gun Enabled", false, "Toggle gun");
             joyStickFlyEnabled = Config.Bind("Settings", "JoyStickFly Enabled", false, "Toggle JoyStickFly");
             ironMonkeyEnabled = Config.Bind("Settings", "IronMonkey Enabled", false, "Toggle IronMonkey");
-
+            doadanceEnabled = Config.Bind("Settings", "Do-A-Dance Enabled", false, "Toggle Do-A-Dance");
+            rewindenabled = Config.Bind("Settings", "Rewind Enabled", false, "Toggle Rewind");
 
 
         }
@@ -136,13 +139,14 @@ namespace Joeys_menu
             if (gunEnabled.Value) Mods.RidePlayerGun();
             if (joyStickFlyEnabled.Value) Mods.Joystickfly();
             if (ironMonkeyEnabled.Value) Mods.IronMonkey();
-
+            if (doadanceEnabled.Value) Mods.DoADance();
+            if (rewindenabled.Value) Mods.Rewind();
         }
 
         void CreateMenu()
         {
 
-            AddDisconnect(0f, "Disconnect", 0.3f, 0f);
+            AddDisconnect(0f, "Disconnect", 0.25f, 0f);
             GorillaLocomotion.GTPlayer player = GorillaLocomotion.GTPlayer.Instance;
 
             IsMenuCreated = true;
@@ -150,11 +154,11 @@ namespace Joeys_menu
 
             menuObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
             menuObj.transform.parent = player.leftControllerTransform;
-            menuObj.transform.localPosition = Vector3.zero;
+            menuObj.transform.localPosition = new Vector3(0.05f, 0f, 0f);
             menuObj.transform.rotation = player.leftControllerTransform.rotation;
 
 
-            menuObj.transform.localScale = new Vector3(0.03f, 0.35f, 0.45f);
+            menuObj.transform.localScale = new Vector3(0.02f, 0.3f, 0.45f);
 
             Renderer rend = menuObj.GetComponent<Renderer>();
             rend.material.shader = Shader.Find("GorillaTag/UberShader");
@@ -200,9 +204,11 @@ namespace Joeys_menu
                 offset -= -0.05f;
             }
 
-            Addbutton(-0.15f, "<<", 0.1f, 0.06f);
-            Addbutton(-0.15f, ">>", 0.1f, -0.06f);
-            Addbutton(-0.1f, "Back", 0.1f, 0.135f);
+            Addnextbtn(0.05f, "<", 0.1f, 0.2f);
+                                   //positve = left
+            Addnextbtn(0.05f, ">", 0.1f, -0.2f);
+
+            AddHome(-0.05f, "Home", 0.1f, 0f);
             
 
         }
@@ -222,7 +228,7 @@ namespace Joeys_menu
             GameObject btnObj;
             btnObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
             var follow = btnObj.AddComponent<Followmenu>();
-            follow.position = new Vector3(0.035f, yoffset, zoffset);
+            follow.position = new Vector3(0.06f, yoffset, zoffset);
             follow.rotation = Quaternion.identity;
             follow.target = player.leftControllerTransform;
 
@@ -233,7 +239,7 @@ namespace Joeys_menu
             //Middle is y
             //Right is z
 
-            btnObj.transform.localScale = new Vector3(0.03f, soffset, 0.04f);
+            btnObj.transform.localScale = new Vector3(0.01f, 0.25f, 0.04f);
 
 
 
@@ -272,7 +278,7 @@ namespace Joeys_menu
             GameObject btnObj;
             btnObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
             var follow = btnObj.AddComponent<Followmenu>();
-            follow.position = new Vector3(0.035f, yoffset, 0.25f);
+            follow.position = new Vector3(0.04f, yoffset, 0.28f);
             follow.rotation = Quaternion.identity;
             follow.target = player.leftControllerTransform;
 
@@ -283,7 +289,7 @@ namespace Joeys_menu
             //Middle is y
             //Right is z
 
-            btnObj.transform.localScale = new Vector3(0.03f, soffset, 0.04f);
+            btnObj.transform.localScale = new Vector3(0.02f, soffset, 0.04f);
 
 
 
@@ -311,6 +317,104 @@ namespace Joeys_menu
             text.enableAutoSizing = true;
             text.rectTransform.sizeDelta = new Vector2(50f, 40f);
             text.transform.localScale = new Vector3(0.01f, 0.1f, 0.3f);
+
+
+
+        }
+
+        void Addnextbtn(float zoffset, string btnName, float soffset, float yoffset)
+        {
+            var player = GorillaLocomotion.GTPlayer.Instance;
+            GameObject btnObj;
+            btnObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var follow = btnObj.AddComponent<Followmenu>();
+            follow.position = new Vector3(0.045f, yoffset, 0f);
+            follow.rotation = Quaternion.identity;
+            follow.target = player.leftControllerTransform;
+
+
+            btnObj.layer = 18;
+
+            //Left is x
+            //Middle is y 
+            //Right is z
+
+            btnObj.transform.localScale = new Vector3(0.015f, 0.06f, 0.4f);
+
+
+
+            Renderer renderer = btnObj.GetComponent<Renderer>();
+            renderer.material.shader = Shader.Find("GorillaTag/UberShader");
+            renderer.material.color = new Color(0.7f, 0.85f, 0.95f);
+            var trigger = btnObj.AddComponent<ButtanActivation>();
+
+            trigger.btnIdentifier = btnName;
+
+
+
+            btnsObjs.Add(btnObj);
+
+            var textObject = new GameObject("ButtonLabel");
+            textObject.transform.SetParent(btnObj.transform);
+            textObject.transform.localPosition = new Vector3(0.55f, 0f, 0f);
+            textObject.transform.localRotation = Quaternion.Euler(0f, -90f, -90f);
+
+            var text = textObject.AddComponent<TextMeshPro>();
+            text.text = btnName;
+            text.fontSize = 30;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = Color.black;
+            text.rectTransform.sizeDelta = new Vector2(50f, 40f);
+            text.transform.localScale = new Vector3(0.1f, 0.1f, 0.3f);
+
+
+
+        }
+
+        void AddHome(float zoffset, string btnName, float soffset, float yoffset)
+        {
+            var player = GorillaLocomotion.GTPlayer.Instance;
+            GameObject btnObj;
+            btnObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            var follow = btnObj.AddComponent<Followmenu>();
+            follow.position = new Vector3(0.06f, yoffset, -0.17f);
+            follow.rotation = Quaternion.identity;
+            follow.target = player.leftControllerTransform;
+
+
+            btnObj.layer = 18;
+
+            //Left is x
+            //Middle is y 
+            //Right is z
+
+            btnObj.transform.localScale = new Vector3(0.015f, 0.06f, 0.06f);
+
+
+
+            Renderer renderer = btnObj.GetComponent<Renderer>();
+            renderer.material.shader = Shader.Find("GorillaTag/UberShader");
+            renderer.material.color = new Color(0.7f, 0.85f, 0.95f);
+            var trigger = btnObj.AddComponent<ButtanActivation>();
+
+            trigger.btnIdentifier = btnName;
+
+
+
+            btnsObjs.Add(btnObj);
+
+            var textObject = new GameObject("ButtonLabel");
+            textObject.transform.SetParent(btnObj.transform);
+            textObject.transform.localPosition = new Vector3(0.55f, 0f, 0f);
+            textObject.transform.localRotation = Quaternion.Euler(0f, -90f, -90f);
+
+            var text = textObject.AddComponent<TextMeshPro>();
+            text.text = btnName;
+            text.fontSize = 30;
+            text.alignment = TextAlignmentOptions.Center;
+            text.color = Color.black;
+            text.rectTransform.sizeDelta = new Vector2(50f, 40f);
+            text.transform.localScale = new Vector3(0.1f, 0.1f, 0.3f);
 
 
 
@@ -418,6 +522,16 @@ namespace Joeys_menu
                         IsToggled = Class1.instance.disconnectEnabled.Value;
                         break;
 
+                    case "Do-A-Dance":
+                        IsToggleAble = true;
+                        IsToggled = Class1.instance.doadanceEnabled.Value;
+                        break;
+
+                    case "Rewind":
+                        IsToggleAble = true;
+                        IsToggled = Class1.instance.rewindenabled.Value;
+                        break;
+
                 }
                 if (IsToggleAble)
                 {
@@ -492,8 +606,16 @@ namespace Joeys_menu
                             Mods.Disconnect();
                             break;
 
+                        case "Do-A-Dance":
+                            IsToggled = Class1.instance.doadanceEnabled.Value = IsToggled;
+                            break;
 
-                        case "<<":
+                        case "Rewind":
+                            IsToggled = Class1.instance.rewindenabled.Value = IsToggled;
+                            break;
+
+
+                        case "<":
                             if (Class1.instance.pageSwitchCoolDown <= 0)
                             {
                                 Class1.instance.PreviousPage();
@@ -501,7 +623,7 @@ namespace Joeys_menu
                             }
                             break;
 
-                        case ">>":
+                        case ">":
                             if (Class1.instance.pageSwitchCoolDown <= 0)
                             {
                                 Class1.instance.NextPage();
@@ -523,7 +645,7 @@ namespace Joeys_menu
                             Class1.instance.CreateMenu();
                             break;
 
-                        case "Back":
+                        case "Home":
                             Class1.instance.currentCategoryIndex = -1;
                             Class1.instance.currentPageIndex = 0;
                             Class1.instance.DestroyMenu();
